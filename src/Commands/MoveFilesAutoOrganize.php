@@ -66,7 +66,7 @@ Class MoveFilesAutoOrganize extends Command
         $this
             // configure an argument
             ->addArgument('source', InputArgument::REQUIRED, 'Source path')
-            ->addArgument('destination', InputArgument::REQUIRED, 'Destination path')
+            ->addArgument('destination', InputArgument::OPTIONAL, 'Destination path')
             ->addArgument('organization', InputArgument::OPTIONAL, 'Organization option', '1')
             // ...
         ;
@@ -80,12 +80,15 @@ Class MoveFilesAutoOrganize extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $source = $input->getArgument('source');
-        $dest = $input->getArgument('destination');
+        $source = DIR::realpath($input->getArgument('source'));
+        $dest = $input->getArgument('destination', false);
+        if (!$dest) {
+            $dest = rtrim($source, "/")."-reorganized";
+        }
         $organization = $input->getArgument('organization', 1);
 
         $command = BIN_DIR."Move/autoorganize '$source' '$dest' $organization";
-        Shell::passthru("");
+        Shell::passthru($command);
 
         return Command::SUCCESS;
     }

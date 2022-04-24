@@ -4,7 +4,7 @@
 # Configurations to modify
 #
 rowsperFile=50000000
-outputdir="/home/ec2-user/EBSSTORAGE/completed"
+outputdir="$HOME/EBSSTORAGE/completed"
 
 ## Do not modify these variables
 declare -a fieldSeparators=( ":" "," ";" )
@@ -102,13 +102,25 @@ writeLine( ) {
 }
 
 #
+# create folder structure
+#
+getFolders( ) {
+  local ss=$1
+  s=${ss:0:3}
+  declare -a a
+  for ((i=0; i<${#s}; i++)); do a[$i]="${s:$i:1}"; done
+  folders=$( printf '%s/' "${a[@]}" )
+}
+
+#
 # get the next filename and resets the line counter
 #
 nextFilename( ) {
   nextFile=false
-  for i in {1..1000}
+  for num in {1..1000}
   do
-    testFile="$outputdir/$i.txt"
+    getFolders $num
+    testFile="$outputdir/$folders$num.txt"
     if [ -f "$testFile" ]; then
       testcount=$( cat $testFile | wc -l )
       if [ "$testcount" -gt "$rowsperFile" ]; then

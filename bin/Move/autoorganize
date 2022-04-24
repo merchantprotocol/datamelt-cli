@@ -2,28 +2,73 @@
 
 from=$1
 to=$2
+IFS=
+
+echo ""
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
+
+#
+# get the next filename and resets the line counter
+#
+nextFilename( ) {
+  nextFile=false
+  for num in {100..1000}
+  do
+    getFolders $num
+    testFile="$to$outputdir/$folders$num.txt"
+
+    if [ -f "$testFile" ]; then
+      continue
+    else
+      count=0
+      nextFile="$testFile"
+      break
+    fi
+  done
+}
+
+#
+# create folder structure
+#
+getFolders( ) {
+  local ss=$1
+  s=${ss:0:3}
+  declare -a a
+  for ((i=0; i<${#s}; i++)); do a[$i]="${s:$i:1}"; done
+  folders=$( printf '%s/' "${a[@]}" )
+}
 
 #
 # Loop through the directories and get the files
 #
 getFiles( ) {
   for dd in "${globbers[@]}" ; do
-
-    foldername=$(pwd)/$from/$dd
-    for d in $foldername ; do
+    foldername=$from$dd
+    for d in $foldername; do
       if [[ ! -f $d ]]; then
         continue
       fi
-      echo "$d"
+      # echo "$d"
+
+      nextFilename $from
+      mkdir -p "$to/$folders"
+      mv $d $nextFile
+
+      echo "MOVED $d to $nextFile"
+
+      break;
     done
   done
 }
 
-getFiles $from
+
+getFiles
+
 
 # get the next folder
 # get the next filename
 # move and rename the file
+
+echo ""
