@@ -1,6 +1,6 @@
 #!/bin/bash
 
-log=~/unpack.log
+log="$HOME/datamelt.log"
 echo "Log File - $log"
 echo ""
 echo "" > $log

@@ -4,7 +4,12 @@ from=$1
 to=$2
 IFS=
 
+log="$HOME/datamelt.log"
+echo "Log File - $log"
 echo ""
+echo "" > $log
+date >> $log
+
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
@@ -55,14 +60,14 @@ getFiles( ) {
 
       nextFilename $from
       if [ "$nextFile" = false ]; then
-        echo "RAN OUT OF FILENAMES"
+        echo "RAN OUT OF FILENAMES" >> $log
         break 2
       fi
 
       mkdir -p "$to/$folders"
       mv $d $nextFile
 
-      echo "MOVED $d to $nextFile"
+      echo "MOVED $d to $nextFile" >> $log
 
     done
   done
