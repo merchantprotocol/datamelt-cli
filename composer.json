@@ -1,0 +1,17 @@
+{
+    "name": "merchantprotocol/datamelt-cli",
+    "description": "An open source command line interface for Moving, Extracting, Loading and Transforming (MELT) Data",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Merchantprotocol\\DatameltCli\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jonathon Byrdziak"
+        }
+    ],
+    "require": {}
+}
