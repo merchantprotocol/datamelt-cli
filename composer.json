@@ -13,5 +13,7 @@
             "name": "Jonathon Byrdziak"
         }
     ],
-    "require": {}
+    "require": {
+        "symfony/console": "^5.4"
+    }
 }
