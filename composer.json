@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Merchantprotocol\\DatameltCli\\": "src/"
+            "Datamelt\\": "src/"
         }
     },
     "authors": [
@@ -14,6 +14,7 @@
         }
     ],
     "require": {
-        "symfony/console": "^5.4"
+        "symfony/console": "^5.4",
+        "symfony/lock": "^5.4"
     }
 }
