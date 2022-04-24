@@ -14,12 +14,13 @@ declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/*
 #
 nextFilename( ) {
   nextFile=false
-  for num in {100..1000}
+  for num in {1000..1000000000000}
   do
     getFolders $num
     testFile="$to$outputdir/$folders$num.txt"
 
     if [ -f "$testFile" ]; then
+      # File exists
       continue
     else
       count=0
@@ -53,10 +54,15 @@ getFiles( ) {
       # echo "$d"
 
       nextFilename $from
+      if [ "$nextFile" = false ]; then
+        echo "RAN OUT OF FILENAMES"
+        break 2
+      fi
+
       mkdir -p "$to/$folders"
       mv $d $nextFile
 
-      # echo "MOVED $d to $nextFile"
+      echo "MOVED $d to $nextFile"
 
     done
   done
