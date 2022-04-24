@@ -39,20 +39,43 @@ use Symfony\Component\Console\Command\LockableTrait;
 use Datamelt\Helpers\Git;
 use Datamelt\Helpers\Shell;
 
-Class DatameltUpdate extends Command {
+Class DatameltGlobal extends Command {
 
     use LockableTrait;
 
-    protected static $defaultName = 'self:update';
-    protected static $defaultDescription = 'Datamelt updates itself';
+    /**
+     * command slug
+     *
+     * @var string
+     */
+    protected static $defaultName = 'self:global';
 
+    /**
+     * Short description
+     *
+     * @var string
+     */
+    protected static $defaultDescription = 'Set datamelt as a global option';
+
+    /**
+     * The name of this command
+     *
+     * @var string
+     */
+    protected $commandName = "datamelt";
+
+    /**
+     * configure
+     *
+     * @return void
+     */
     protected function configure(): void
     {
         // ...
         $this
             // the command help shown when running the command with the "--help" option
             ->setHelp(<<<HELP
-            Update self
+            Sets self as a global option for all users.
 
             HELP)
         ;
@@ -73,17 +96,53 @@ Class DatameltUpdate extends Command {
         // command should only have one running instance
         if (!$this->lock()) {
             $output->writeln('The command is already running in another process.');
-
             return Command::SUCCESS;
         }
 
-        $protocoldir = WEBROOT_DIR;
-        $remote = Git::remoteName( $protocoldir );
-        $branch = Git::branch( $protocoldir );
+        $datameltpath = WEBROOT_DIR.$this->commandName;
 
-        Shell::passthru("git -C $protocoldir fetch --all");
-        Shell::passthru("git -C $protocoldir reset --hard $remote/$branch");
-        Shell::passthru("git -C $protocoldir reset --hard HEAD");
+        // Is there a conflicing datamelt command already in the namespace
+        $which = Shell::run("which {$this->commandName}", $notfound);
+        if (!$notfound) {
+            $output->writeln('<error>Conflicting datamelt command already exists globally</error>');
+            return Command::SUCCESS;
+        }
+
+        // Finding the first available preferred path
+        $preferred = ['/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin'];
+        $path = Shell::run("echo \$PATH");
+        $pathes = explode(':', $path);
+
+        foreach ($pathes as $bin) {
+            if (!in_array($bin, $preferred)) continue;
+
+            $testpath = $bin.DIRECTORY_SEPARATOR.$this->commandName;
+            // Does the file already exist
+            if (file_exists($testpath) || is_link($testpath)) {
+                $output->writeln('<error>Datamelt command already exists globally</error>');
+                return Command::SUCCESS;
+            }
+
+            $datameltsymlink = $testpath;
+            break;
+        }
+
+        // can create symlink
+        $bin = dirname($datameltsymlink);
+        
+        $command = "ln -s $datameltpath $datameltsymlink";
+        $installed = Shell::run($command, $notinstalled);
+        if ($notinstalled) {
+            $output->writeln("<error>$installed</error>");
+            return Command::SUCCESS;
+        }
+
+        // // Is there a conflicing datamelt command already in the namespace
+        $which = Shell::run("which {$this->commandName}", $notfound);
+        if (!$notfound) {
+            $output->writeln('<info>Datamelt was installed globally</info>');
+            return Command::SUCCESS;
+        }
 
         return Command::SUCCESS;
     }
