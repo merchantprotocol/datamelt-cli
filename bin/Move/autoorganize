@@ -56,9 +56,8 @@ getFiles( ) {
       mkdir -p "$to/$folders"
       mv $d $nextFile
 
-      echo "MOVED $d to $nextFile"
+      # echo "MOVED $d to $nextFile"
 
-      break;
     done
   done
 }
