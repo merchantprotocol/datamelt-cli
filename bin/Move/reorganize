@@ -1,0 +1,29 @@
+#!/bin/bash
+
+from=$1
+to=$2
+
+## Do not modify these variables
+declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
+
+#
+# Loop through the directories and get the files
+#
+getFiles( ) {
+  for dd in "${globbers[@]}" ; do
+
+    foldername=$(pwd)/$from/$dd
+    for d in $foldername ; do
+      if [[ ! -f $d ]]; then
+        continue
+      fi
+      echo "$d"
+    done
+  done
+}
+
+getFiles $from
+
+# get the next folder
+# get the next filename
+# move and rename the file

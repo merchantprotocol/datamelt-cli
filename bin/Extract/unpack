@@ -1,0 +1,120 @@
+#!/bin/bash
+
+log=~/unpack.log
+echo "Log File - $log"
+echo ""
+echo "" > $log
+date >> $log
+
+#
+# InputOverides
+#
+userinput=$1
+
+#
+# Prepare a single file
+#
+prepareInput( ) {
+  tarname=$1
+  foldername=$( echo "$tarname" | cut -f 1 -d '.' )
+
+  if [ -f "$tarname" ]; then
+    echo "" >> $log
+    echo "    Working with" >> $log
+    echo "    ============" >> $log
+    echo "    $tarname" >> $log
+    echo "    $foldername" >> $log
+    fileExists=true
+  else
+    fileExists=false
+  fi
+}
+
+#
+# check to see if the directory exists
+#
+checkFolderExists( ) {
+  if [ -d "$foldername" ]; then
+    echo "" >> $log
+    echo "    This directory already exists ($foldername)" >> $log
+    echo "    =========================================" >> $log
+    count=$(ls -la "$foldername" | wc -l)
+    echo "    $count files in the dir" >> $log
+    echo "" >> $log
+  fi
+}
+
+#
+# Check the size of the directory
+#
+checkFolderSize( ) {
+  if [ -d "$foldername" ]; then
+    folderbytes=0;
+    folderpath=$foldername/*/
+    for d in $folderpath ; do
+        if [ -f "$d" ]; then
+          filebytes=$(du --apparent-size --block-size=1 "$foldername/$d" | awk '{ print $1 }')
+          folderbytes=$(($folderbytes+$filebytes))
+        fi
+    done
+
+    tarbytes=$(du --apparent-size --block-size=1 "$tarname" | awk '{ print $1 }')
+    echo "    IS Tar bytes $tarbytes > Folder bytes $folderbytes" >> $log
+  fi
+}
+
+#
+# Make sure the directory is larger than the tar
+#
+checkIfExtracted( ) {
+  if [ "$tarbytes" -lt "$folderbytes" ]; then
+    echo "    tar has been extracted, skipping..." >> $log
+    echo "" >> $log
+    fileExtract=false
+  else
+    fileExtract=true
+  fi
+}
+
+#
+# Tar needs to be extracted
+#
+extractTar( ) {
+    echo "    Extracting tar.gz" >> $log
+    tar -xf "$tarname"
+    echo "    DONE WITH $tarname" >> $log
+}
+
+#
+# Loop through the folder
+#
+if [ -f "$userinput" ]; then
+    prepareInput "$userinput"
+    checkFolderExists
+    checkFolderSize
+    checkIfExtracted
+    if [ "$fileExtract" = false ]; then
+       echo "    Exiting..." >> $log
+       exit
+    fi
+
+    # Extract the file
+    extractTar
+
+else
+    for d in *.tar.gz ; do
+        prepareInput "$d"
+        checkFolderExists
+        checkFolderSize
+        checkIfExtracted
+        if [ "$fileExtract" = false ]; then
+            continue
+        fi
+
+        # Extract the file
+        extractTar
+
+    done
+fi
+
+#cat $log

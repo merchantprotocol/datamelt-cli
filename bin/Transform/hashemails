@@ -1,0 +1,197 @@
+#!/bin/bash
+
+#
+# Configurations to modify
+#
+rowsperFile=50000000
+outputdir="/home/ec2-user/EBSSTORAGE/completed"
+
+## Do not modify these variables
+declare -a fieldSeparators=( ":" "," ";" )
+regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
+count=0
+
+#
+# InputOverides
+#
+userinput=$1
+
+#
+# Prepare a single file
+#
+prepareInput( ) {
+  file=$1
+  lines=$( cat $file | wc -l )
+  firstline=$(head -n 1 "$file")
+
+  if [ -f "$file" ]; then
+    echo ""
+    echo "    Working with"
+    echo "    ============"
+    echo "    FILE: $file"
+    echo "    LINES: $lines"
+    echo "    FIRSTLINE: $firstline"
+    getFieldSeparator
+    echo "    FIELD_SEPARATOR: $fs"
+    echo ""
+    fileExists=true
+  else
+    fileExists=false
+  fi
+}
+
+#
+# hash the email
+#
+hashEmail( ) {
+  local email=$1
+  echo "    EMAIL: $email"
+}
+
+#
+# Determine the field separator
+#
+tryFieldSeparator( ) {
+    local fs=$1
+    isParsed=false
+    while IFS="$fs" read email pw
+    do
+      if [[ ! -z "$pw" ]]; then
+        isParsed=true
+      fi
+    done < <(tail -n 1 $file)
+}
+getFieldSeparator( ) {
+    for fs in "${fieldSeparators[@]}"; do
+      tryFieldSeparator "$fs"
+      if [ "$isParsed" = true ]; then
+        break
+      fi
+    done
+}
+
+#
+# check if a valid email
+#
+checkEmail( ) {
+  local em=$1
+  if [[ $em=~$regex ]] ; then
+    isEmail=true
+  else
+    isEmail=false
+  fi
+}
+
+#
+# Write new line to file
+#
+writeLine( ) {
+  local params=($@)
+
+  printf -v joined '%s,' "${params[@]}"
+  line="${joined%,}"
+
+  echo "$line" >> $nextFile
+
+  count=$(($count+1))
+  if [ "$count" -gt "$rowsperFile" ]; then
+    echo "count is $count getting next file"
+    nextFilename
+    echo "$nextFile"
+  fi
+}
+
+#
+# get the next filename and resets the line counter
+#
+nextFilename( ) {
+  nextFile=false
+  for i in {1..1000}
+  do
+    testFile="$outputdir/$i.txt"
+    if [ -f "$testFile" ]; then
+      testcount=$( cat $testFile | wc -l )
+      if [ "$testcount" -gt "$rowsperFile" ]; then
+        continue
+      fi
+      count="$testcount"
+      nextFile="$testFile"
+    else
+      count=0
+      nextFile="$testFile"
+      touch $testFile
+      break
+    fi
+  done
+}
+
+#
+# parse out the domain
+#
+parseDomain( ) {
+  parts=(${email//@/ })
+  domain=${parts[1]}
+}
+
+#
+# Show Output
+#
+showOutput( ) {
+  echo "    EMAIL: $email"
+  echo "    domain: $domain"
+  echo "    hashmd5: $hashmd5"
+  echo "    hashmd5_uc: $hashmd5_uc"
+  echo "    hashsha1: $hashsha1"
+  echo "    hashsha1_uc: $hashsha1_uc"
+  echo "    hashsha256: $hashsha256"
+  echo "    hashsha256_uc: $hashsha256_uc"
+  echo ""
+}
+
+#
+# Parse the file
+#
+parseFile( ) {
+  prepareInput $1
+  nextFilename
+
+  while IFS="$fs" read -r email
+  do
+    checkEmail $email
+    if [ "$isEmail" = false ]; then
+      continue
+    fi
+    count=$(($count+1))
+
+    parseDomain
+
+    hashmd5=$( echo -n "$email" | md5sum | awk '{print $1}' )
+    hashmd5_uc=$( echo -n ${email^^} | md5sum | awk '{print $1}' )
+
+    hashsha1=$( echo -n "$email" | sha1sum | awk '{print $1}' )
+    hashsha1_uc=$( echo -n ${email^^} | sha1sum | awk '{print $1}' )
+
+    hashsha256=$( echo -n "$email" | sha256sum | awk '{print $1}' )
+    hashsha256_uc=$( echo -n ${email^^} | sha256sum | awk '{print $1}' )
+
+    showOutput
+    writeLine $email $domain $hashmd5 $hashmd5_uc $hashsha1_uc $hashsha1 $hashsha256 $hashsha256_uc
+
+  done < <(cut -d "$fs" -f1 $file | tail -n 1)
+#  done < <(cut -d "$fs" -f1 $file)
+}
+
+#
+# Loop through the directories and get the files
+#
+getFiles( ) {
+  foldername=$1/**/*.txt
+  for d in $foldername ; do
+    echo "$d"
+  done
+}
+
+getFiles $userinput
+
+
+#parseFile $userinput
