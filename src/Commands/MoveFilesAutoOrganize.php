@@ -35,6 +35,7 @@ namespace Datamelt\Commands;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Datamelt\Helpers\Dir;
 use Datamelt\Helpers\Shell;
@@ -68,6 +69,7 @@ Class MoveFilesAutoOrganize extends Command
             ->addArgument('source', InputArgument::REQUIRED, 'Source path')
             ->addArgument('destination', InputArgument::OPTIONAL, 'Destination path')
             ->addArgument('organization', InputArgument::OPTIONAL, 'Organization option', '1')
+            ->addOption('daemon', 'd', InputOption::VALUE_OPTIONAL, 'Run as a background service', false)
             // ...
         ;
     }
@@ -80,6 +82,9 @@ Class MoveFilesAutoOrganize extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $daemon = $input->getOption('daemon', false);
+        if (is_null($daemon)) $daemon = true;
+
         $source = DIR::realpath($input->getArgument('source'));
         $dest = $input->getArgument('destination', false);
         if (!$dest) {
@@ -88,7 +93,11 @@ Class MoveFilesAutoOrganize extends Command
         $organization = $input->getArgument('organization', 1);
 
         $command = BIN_DIR."Move/autoorganize '$source' '$dest' $organization";
-        Shell::passthru($command);
+        if ($daemon) {
+            Shell::background($command);
+        } else {
+            Shell::passthru($command);
+        }
 
         return Command::SUCCESS;
     }
