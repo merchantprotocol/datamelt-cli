@@ -46,7 +46,7 @@ nextFilename( ) {
       continue
     else
       count=0
-      foldercount=$num
+      foldercount=$(($num+1))
       nextFile="$testFile"
       break
     fi
