@@ -7,12 +7,13 @@ IFS=
 #
 # ability to log the messages to screen or file
 #
-DEBUG=
+DEBUG=$3
 logfile="$HOME/datamelt.log"
 
 log( ) {
   msg=$1
   if [[ ! -z "$DEBUG" ]]; then
+    ## if DEBUG variable is not empty, do this
     echo "$msg" >> $logfile
   else
     echo "$msg"
@@ -56,7 +57,7 @@ nextFilename( ) {
       log "num testFile $testFile"
 
     # The file does not exist, so we're going with foldercount
-    else 
+    else
       newnum="$foldercount"
     fi
 

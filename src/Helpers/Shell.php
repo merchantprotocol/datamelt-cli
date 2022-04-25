@@ -233,12 +233,12 @@ Class Shell
      */
     public static function isRunning( $pid )
     {
-        try{
+        try {
             $result = shell_exec(sprintf("ps %d", $pid));
             if( count(preg_split("/\n/", $result)) > 2){
                 return true;
             }
-        }catch(Exception $e){}
+        } catch(Exception $e) {}
 
         return false;
     }

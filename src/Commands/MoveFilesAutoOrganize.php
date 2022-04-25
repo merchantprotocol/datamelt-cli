@@ -90,11 +90,13 @@ Class MoveFilesAutoOrganize extends Command
         if (!$dest) {
             $dest = rtrim($source, "/")."-reorganized";
         }
+
+        // not currently in use
         $organization = $input->getArgument('organization', 1);
 
-        $command = BIN_DIR."Move/autoorganize '$source' '$dest' $organization";
+        $command = BIN_DIR."Move/autoorganize '$source' '$dest'";
         if ($daemon) {
-            Shell::background($command);
+            Shell::background($command." 1");
         } else {
             Shell::passthru($command);
         }
