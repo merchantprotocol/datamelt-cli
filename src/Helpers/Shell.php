@@ -206,13 +206,13 @@ Class Shell
      */
     public static function background( $command )
     {
-        if (!file_exists($outputfile)) {
-            $dir = dirname($outputfile);
+        if (!file_exists(self::outputfile)) {
+            $dir = dirname(self::outputfile);
             if (!is_dir($dir)) {
                 self::run("mkdir -p $dir");
             }
             if (is_dir($dir)) {
-                touch($outputfile);
+                touch(self::outputfile);
             }
         }
 
