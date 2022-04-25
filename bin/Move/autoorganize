@@ -8,19 +8,22 @@ IFS=
 # ability to log the messages to screen or file
 #
 DEBUG=
-log="$HOME/datamelt.log"
-echo "Log File - $log"
-echo ""
-echo "" > $log
-date >> $log
+logfile="$HOME/datamelt.log"
+
 log( ) {
   msg=$1
   if [[ ! -z "$DEBUG" ]]; then
-    echo "$msg" >> $log
+    echo "$msg" >> $logfile
   else
     echo "$msg"
   fi
 }
+
+## Prettify the log
+log "---------------------------------------------------------------------------------"
+log "Log File - $logfile"
+log $( date +%F )
+log ""
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
@@ -30,26 +33,38 @@ foldercount=1000
 # get the next filename and resets the line counter
 #
 nextFilename( ) {
-  log "Starting nextFilename"
-
   nextFile=false
   for num in {1000..1000000}
   do
-    log "num is $num"
+    log "$num"
 
     getFolders $foldercount
     testFile="$to$outputdir/$folders$foldercount.txt"
 
+    # If the file does exist we need to increment
+    log "foldercount testFile $testFile"
     if [ -f "$testFile" ]; then
-      foldercount=$num
-      # File exists
-      continue
-    else
-      count=0
-      foldercount=$(($num+1))
-      nextFile="$testFile"
-      break
+      getFolders $num
+      testFile="$to$outputdir/$folders$num.txt"
+
+      if [ -f "$testFile" ]; then
+        # File exists
+        continue
+      fi
+
+      newnum="$num"
+      log "num testFile $testFile"
+
+    # The file does not exist, so we're going with foldercount
+    else 
+      newnum="$foldercount"
     fi
+
+    # Once we've found a num with no existing file
+    count=0
+    foldercount=$(($newnum+1))
+    nextFile="$testFile"
+    break
   done
 }
 
@@ -57,8 +72,6 @@ nextFilename( ) {
 # create folder structure
 #
 getFolders( ) {
-  log "Starting getFolders"
-
   local ss=$1
   s=${ss:0:3}
   declare -a a
@@ -88,7 +101,7 @@ getFiles( ) {
       fi
 
       mkdir -p "$to/$folders"
-      # mv $d $nextFile
+      mv $d $nextFile
 
       log "MOVED $d to $nextFile" 
 
