@@ -24,6 +24,7 @@ log( ) {
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
+foldercount=1000
 
 #
 # get the next filename and resets the line counter
@@ -34,16 +35,18 @@ nextFilename( ) {
   nextFile=false
   for num in {1000..1000000}
   do
-    log "Starting num loop ($num)"
+    log "num is $num"
 
-    getFolders $num
-    testFile="$to$outputdir/$folders$num.txt"
+    getFolders $foldercount
+    testFile="$to$outputdir/$folders$foldercount.txt"
 
     if [ -f "$testFile" ]; then
+      foldercount=$num
       # File exists
       continue
     else
       count=0
+      foldercount=$num
       nextFile="$testFile"
       break
     fi
@@ -85,7 +88,7 @@ getFiles( ) {
       fi
 
       mkdir -p "$to/$folders"
-      mv $d $nextFile
+      # mv $d $nextFile
 
       log "MOVED $d to $nextFile" 
 
