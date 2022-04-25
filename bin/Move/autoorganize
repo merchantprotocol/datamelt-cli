@@ -4,12 +4,23 @@ from=$1
 to=$2
 IFS=
 
+#
+# ability to log the messages to screen or file
+#
+DEBUG=
 log="$HOME/datamelt.log"
 echo "Log File - $log"
 echo ""
 echo "" > $log
 date >> $log
-
+log( ) {
+  msg=$1
+  if [[ ! -z "$DEBUG" ]]; then
+    echo "$msg" >> $log
+  else
+    echo "$msg"
+  fi
+}
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
@@ -18,9 +29,13 @@ declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/*
 # get the next filename and resets the line counter
 #
 nextFilename( ) {
+  log "Starting nextFilename"
+
   nextFile=false
-  for num in {1000..1000000000000}
+  for num in {1000..1000000}
   do
+    log "Starting num loop ($num)"
+
     getFolders $num
     testFile="$to$outputdir/$folders$num.txt"
 
@@ -39,6 +54,8 @@ nextFilename( ) {
 # create folder structure
 #
 getFolders( ) {
+  log "Starting getFolders"
+
   local ss=$1
   s=${ss:0:3}
   declare -a a
@@ -52,22 +69,25 @@ getFolders( ) {
 getFiles( ) {
   for dd in "${globbers[@]}" ; do
     foldername=$from$dd
+    log "$foldername"
+
     for d in $foldername; do
       if [[ ! -f $d ]]; then
         continue
       fi
-      # echo "$d"
-
+      log "getfiles before nextfilename $d"
       nextFilename $from
+      log "nextFilename is $nextFile"
+
       if [ "$nextFile" = false ]; then
-        echo "RAN OUT OF FILENAMES" >> $log
+        log "RAN OUT OF FILENAMES" 
         break 2
       fi
 
       mkdir -p "$to/$folders"
       mv $d $nextFile
 
-      echo "MOVED $d to $nextFile" >> $log
+      log "MOVED $d to $nextFile" 
 
     done
   done
@@ -81,4 +101,4 @@ getFiles
 # get the next filename
 # move and rename the file
 
-echo ""
+log ""
