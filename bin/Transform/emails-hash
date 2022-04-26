@@ -73,8 +73,6 @@ showOutput( ) {
   log "hashsha256: $hashsha256"
   log "hashsha256_uc: $hashsha256_uc"
   log ""
-
-exit
 }
 
 #
@@ -201,6 +199,11 @@ getFiles( ) {
         log "Making the output dir ($outputdir)"
         mkdir -p "$outputdir"
       fi
+
+
+      log "outputdir is ($outputdir)"
+      log "^^^^^^^^^^^^^^^^^^^^^^^^"
+exit
 
       # move the doc to and then read from it
       log "Copying file... $originalreadfile $newreadfile "

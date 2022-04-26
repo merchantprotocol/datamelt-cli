@@ -81,6 +81,7 @@ Class TransformEmailsHash extends Command
         if (!$dest) {
             $dest = rtrim($source, "/")."-completed";
         }
+        $dest = DIR::realpath($dest);
 
         // not currently in use
         $rowsperFile = $input->getArgument('rowsperFile', 1);
