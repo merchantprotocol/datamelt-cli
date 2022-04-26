@@ -81,7 +81,10 @@ Class TransformEmailsHash extends Command
         if (!$dest) {
             $dest = rtrim($source, "/")."-completed";
         }
-        $dest = DIR::realpath($dest);
+        if (strpos($dest,'/')!==0 && strpos($dest,'.')!==0) {
+            $output->writeln('<error>Please include an absolute or relative destination path</error>');
+            return Command::SUCCESS;
+        }
 
         // not currently in use
         $rowsperFile = $input->getArgument('rowsperFile', 1);

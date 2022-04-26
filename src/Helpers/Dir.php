@@ -74,19 +74,21 @@ Class Dir
      */
     public static function realpath( $path, $default = false )
     {
+        $newpath = '';
         if ($path && realpath($path)) {
-            $path = rtrim(realpath($path), DIRECTORY_SEPARATOR);
+            $newpath = rtrim(realpath($path), DIRECTORY_SEPARATOR);
         } elseif ($path && $dir = realpath(dirname($path))) {
             if ($dir) {
-                $path = $dir.DIRECTORY_SEPARATOR.basename($path);
+                $newpath = $dir.DIRECTORY_SEPARATOR.basename($path);
             }
         } else {
-            $path = $default;
+            $newpath = $default;
         }
-        if (is_dir($path)) {
-            $path = rtrim($path, '/').DIRECTORY_SEPARATOR;
+
+        if (is_dir($newpath)) {
+            $newpath = rtrim($newpath, '/').DIRECTORY_SEPARATOR;
         }
-        return $path;
+        return $newpath;
     }
 
     /**

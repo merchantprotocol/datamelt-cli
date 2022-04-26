@@ -195,15 +195,11 @@ getFiles( ) {
       fi
       
       # copy the readfile over to the new dir if it doesn't exist
-      if [[ ! -d $outputdir ]]; then
-        log "Making the output dir ($outputdir)"
-        mkdir -p "$outputdir"
+      outputdirpath=$( dirname $newreadfile )
+      if [[ ! -d $outputdirpath ]]; then
+        log "Making the output dir ($outputdirpath)"
+        mkdir -p "$outputdirpath"
       fi
-
-
-      log "outputdir is ($outputdir)"
-      log "^^^^^^^^^^^^^^^^^^^^^^^^"
-exit
 
       # move the doc to and then read from it
       log "Copying file... $originalreadfile $newreadfile "
