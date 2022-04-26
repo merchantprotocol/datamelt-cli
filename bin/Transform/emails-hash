@@ -1,0 +1,248 @@
+#!/bin/bash
+
+#
+# InputOverides
+#
+sourcedir=$1
+outputdir=$2
+rowsperFile=$3
+
+## Do not modify these variables
+declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
+declare -a fieldSeparators=( ":" "," ";" )
+regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
+count=0
+
+#
+# ability to log the messages to screen or file
+#
+DEBUG=$4
+logfile="$HOME/datamelt-emails-hash.log"
+
+log( ) {
+  msg=$1
+  if [[ ! -z "$DEBUG" ]]; then
+    ## if DEBUG variable is not empty, do this
+    echo "$msg" >> $logfile
+  else
+    echo "    $msg"
+  fi
+}
+
+## Prettify the log
+log "---------------------------------------------------------------------------------"
+log "Log File - $logfile"
+log $( date +%F )
+log ""
+
+#
+# Prepare a single file
+#
+prepareInput( ) {
+  file=$1
+  lines=$( cat "$file" | wc -l )
+  firstline=$( head -n 1 "$file" )
+
+  if [ -f "$file" ]; then
+    log ""
+    log "Working with"
+    log "============"
+    log "FILE: $file"
+    log "LINES: $lines"
+    log "FIRSTLINE: $firstline"
+
+    getFieldSeparator
+    log "FIELD_SEPARATOR: $fs"
+    log ""
+    fileExists=true
+  else
+    fileExists=false
+  fi
+}
+
+#
+# Show Output
+#
+showOutput( ) {
+  log "EMAIL: $email"
+  log "domain: $domain"
+  log "hashmd5: $hashmd5"
+  log "hashmd5_uc: $hashmd5_uc"
+  log "hashsha1: $hashsha1"
+  log "hashsha1_uc: $hashsha1_uc"
+  log "hashsha256: $hashsha256"
+  log "hashsha256_uc: $hashsha256_uc"
+  log ""
+
+exit
+}
+
+#
+# Determine the field separator
+#
+tryFieldSeparator( ) {
+    local fs=$1
+    isParsed=false
+    while IFS="$fs" read email pw
+    do
+      if [[ ! -z "$pw" ]]; then
+        isParsed=true
+      fi
+    done < <( head -n 1 "$file" )
+}
+getFieldSeparator( ) {
+    for fs in "${fieldSeparators[@]}"; do
+      tryFieldSeparator "$fs"
+      if [ "$isParsed" = true ]; then
+        break
+      fi
+    done
+
+    if [ "$isParse" = false ]; then
+      log "---------- FATAL"
+      log "Could not find a suitable field separator, this is not a CSV file"
+      log ""
+    fi
+}
+
+#
+# check if a valid email
+#
+checkEmail( ) {
+  local em=$1
+  if [[ $em=~$regex ]] ; then
+    isEmail=true
+  else
+    isEmail=false
+  fi
+}
+
+#
+# parse out the domain
+#
+parseDomain( ) {
+  parts=(${email//@/ })
+  domain=${parts[1]}
+}
+
+#
+# Write new line to file
+#
+writeLine( ) {
+  local params=($@)
+
+  printf -v joined '%s,' "${params[@]}"
+  line="${joined%,}"
+
+  log "$line" >> $nextFile
+
+  count=$(($count+1))
+  if [ "$count" -gt "$rowsperFile" ]; then
+    log "count is $count getting next file"
+    nextFilename
+    log "$nextFile"
+  fi
+}
+
+#
+# get the next filename to WRITE to and resets the line counter
+#
+nextFilename( ) {
+  nextFile=false
+  for num in {1..1000}
+  do
+    testFile="$outputdir/$num.txt"
+    if [ -f "$testFile" ]; then
+      testcount=$( cat $testFile | wc -l )
+      if [ "$testcount" -gt "$rowsperFile" ]; then
+        continue
+      fi
+      count="$testcount"
+      nextFile="$testFile"
+    else
+      count=0
+      nextFile="$testFile"
+      touch $testFile
+      break
+    fi
+  done
+}
+
+#
+# Loop through the directories and get the files to READ from
+#
+getFiles( ) {
+  for dd in "${globbers[@]}" ; do
+    folderglob=$sourcedir$dd
+    log "checking folderglob ($folderglob)"
+
+    # find the next file to read from
+    for originalreadfile in $folderglob; do
+      if [[ ! -f $originalreadfile ]]; then
+        continue
+      fi
+
+      # find the new read location
+      newreadfile="${originalreadfile/$sourcedir/$outputdir/}"
+      # if this file exists in the new location, then its locked
+      if [ -f $newreadfile ]; then
+        continue
+      fi
+
+      log "newreadfile ($newreadfile)"
+      prepareInput "$originalreadfile"
+      if [ "$isParse" = false ]; then 
+        # File did not parse, so skip it
+        continue
+      fi
+      
+      # copy the readfile over to the new dir if it doesn't exist
+      if [[ ! -d $outputdir ]]; then
+        log "Making the output dir ($outputdir)"
+        mkdir -p "$outputdir"
+      fi
+
+      # move the doc to and then read from it
+      log "Copying file... $originalreadfile $newreadfile "
+      cp $originalreadfile $newreadfile
+      parseFile
+
+    done
+  done
+}
+
+#
+# Parse the file
+#
+parseFile( ) {
+  nextFilename # to write to
+
+  log "Parsing the new file"
+  while IFS="$fs" read -r email
+  do
+    log "checking email $email"
+    checkEmail $email
+    if [ "$isEmail" = false ]; then
+      continue
+    fi
+    count=$(($count+1))
+
+    parseDomain
+
+    hashmd5=$( echo -n "$email" | md5sum | awk '{print $1}' )
+    hashmd5_uc=$( echo -n ${email^^} | md5sum | awk '{print $1}' )
+
+    hashsha1=$( echo -n "$email" | sha1sum | awk '{print $1}' )
+    hashsha1_uc=$( echo -n ${email^^} | sha1sum | awk '{print $1}' )
+
+    hashsha256=$( echo -n "$email" | sha256sum | awk '{print $1}' )
+    hashsha256_uc=$( echo -n ${email^^} | sha256sum | awk '{print $1}' )
+
+    showOutput
+    writeLine $email $domain $hashmd5 $hashmd5_uc $hashsha1_uc $hashsha1 $hashsha256 $hashsha256_uc
+
+  # done < <(cut -d "$fs" -f1 $newreadfile | head -n 1)
+ done < <(cut -d "$fs" -f1 $newreadfile)
+}
+
+getFiles $sourcedir
