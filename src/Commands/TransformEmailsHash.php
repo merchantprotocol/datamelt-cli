@@ -89,7 +89,7 @@ Class TransformEmailsHash extends Command
         // not currently in use
         $rowsperFile = $input->getArgument('rowsperFile', 1);
 
-        $command = BIN_DIR."Transform/emails-hash '$source' '$dest' $rowsperFile";
+        $command = BIN_DIR."Transform/emails-hash '$source' '$dest'";
         if ($daemon) {
             Shell::background($command." 1");
         } else {

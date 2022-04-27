@@ -5,7 +5,6 @@
 #
 sourcedir=$1
 outputdir=$2
-# rowsperFile=$3
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
@@ -15,7 +14,7 @@ regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-
 #
 # ability to log the messages to screen or file
 #
-DEBUG=$4
+DEBUG=$3
 logfile="$HOME/datamelt-emails-hash.log"
 
 log( ) {
