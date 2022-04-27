@@ -5,13 +5,12 @@
 #
 sourcedir=$1
 outputdir=$2
-rowsperFile=$3
+# rowsperFile=$3
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
 declare -a fieldSeparators=( ":" "," ";" )
 regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
-count=0
 
 #
 # ability to log the messages to screen or file
@@ -53,7 +52,7 @@ prepareInput( ) {
 
     getFieldSeparator
     log "FIELD_SEPARATOR: $fs"
-    log ""
+    # log ""
     fileExists=true
   else
     fileExists=false
@@ -131,39 +130,8 @@ writeLine( ) {
 
   printf -v joined '%s,' "${params[@]}"
   line="${joined%,}"
-
-  log "$line" >> $nextFile
-
-  count=$(($count+1))
-  if [ "$count" -gt "$rowsperFile" ]; then
-    log "count is $count getting next file"
-    nextFilename
-    log "$nextFile"
-  fi
-}
-
-#
-# get the next filename to WRITE to and resets the line counter
-#
-nextFilename( ) {
-  nextFile=false
-  for num in {1..1000}
-  do
-    testFile="$outputdir/$num.txt"
-    if [ -f "$testFile" ]; then
-      testcount=$( cat $testFile | wc -l )
-      if [ "$testcount" -gt "$rowsperFile" ]; then
-        continue
-      fi
-      count="$testcount"
-      nextFile="$testFile"
-    else
-      count=0
-      nextFile="$testFile"
-      touch $testFile
-      break
-    fi
-  done
+  
+  echo "$line" >> $destinationfile
 }
 
 #
@@ -172,7 +140,7 @@ nextFilename( ) {
 getFiles( ) {
   for dd in "${globbers[@]}" ; do
     folderglob=$sourcedir$dd
-    log "checking folderglob ($folderglob)"
+    # log "checking folderglob ($folderglob)"
 
     # find the next file to read from
     for originalreadfile in $folderglob; do
@@ -181,13 +149,18 @@ getFiles( ) {
       fi
 
       # find the new read location
-      newreadfile="${originalreadfile/$sourcedir/$outputdir/}"
+      destinationfile="${originalreadfile/$sourcedir/$outputdir/}"
       # if this file exists in the new location, then its locked
-      if [ -f $newreadfile ]; then
+      if [ -f "$destinationfile" ]; then
+        continue
+      fi
+      newreadfile="${originalreadfile}.lock"
+      # does the lockfile exist?
+      if [ -f "$newreadfile" ]; then
         continue
       fi
 
-      log "newreadfile ($newreadfile)"
+      # log "newreadfile ($newreadfile)"
       prepareInput "$originalreadfile"
       if [ "$isParse" = false ]; then 
         # File did not parse, so skip it
@@ -197,13 +170,13 @@ getFiles( ) {
       # copy the readfile over to the new dir if it doesn't exist
       outputdirpath=$( dirname $newreadfile )
       if [[ ! -d $outputdirpath ]]; then
-        log "Making the output dir ($outputdirpath)"
+        # log "Making the output dir ($outputdirpath)"
         mkdir -p "$outputdirpath"
       fi
 
       # move the doc to and then read from it
-      log "Copying file... $originalreadfile $newreadfile "
-      cp $originalreadfile $newreadfile
+      # log "Copying file... $originalreadfile $newreadfile"
+      cp "$originalreadfile" "$newreadfile"
       parseFile
 
     done
@@ -214,34 +187,62 @@ getFiles( ) {
 # Parse the file
 #
 parseFile( ) {
-  nextFilename # to write to
-
-  log "Parsing the new file"
+  start=`date +%s`
+  count=0
+  # log "Parsing the new file"
   while IFS="$fs" read -r email
   do
-    log "checking email $email"
+    # does the email contain invalid chars?
+    if [[ ! "${email/;}" = "$email" ]]; then
+      arrIN=(${email//;/ })
+      email=${arrIN[0]}
+    fi
+
+    # does the email contain invalid chars?
+    if [[ ! "${email/:}" = "$email" ]]; then
+      arrIN=(${email//:/ })
+      email=${arrIN[0]}
+    fi
+
     checkEmail $email
     if [ "$isEmail" = false ]; then
       continue
     fi
+    # log "checking email $email"
+
     count=$(($count+1))
 
     parseDomain
 
     hashmd5=$( echo -n "$email" | md5sum | awk '{print $1}' )
     hashmd5_uc=$( echo -n ${email^^} | md5sum | awk '{print $1}' )
-
+    
     hashsha1=$( echo -n "$email" | sha1sum | awk '{print $1}' )
     hashsha1_uc=$( echo -n ${email^^} | sha1sum | awk '{print $1}' )
-
+    
     hashsha256=$( echo -n "$email" | sha256sum | awk '{print $1}' )
     hashsha256_uc=$( echo -n ${email^^} | sha256sum | awk '{print $1}' )
 
-    showOutput
+    # hashsha1_uc="$email"
+    # hashmd5_uc="$email"
+    # hashsha256="$email"
+    # hashsha256_uc="$email"
+
+    # showOutput
     writeLine $email $domain $hashmd5 $hashmd5_uc $hashsha1_uc $hashsha1 $hashsha256 $hashsha256_uc
 
   # done < <(cut -d "$fs" -f1 $newreadfile | head -n 1)
- done < <(cut -d "$fs" -f1 $newreadfile)
+ done < <(cut -d "$fs" -f1 "$newreadfile")
+
+  rm -f "$newreadfile"
+  end=`date +%s`
+  runtime=$((end-start))
+  totaltime=$(( $(( $((3200000000/$count))*$runtime ))/60/60/24 ))
+
+  log "RECORDS: $count"
+  log "RUNTIME: $runtime"
+  log "TOTAL CALCULATED TIME: $totaltime days"
+  log ""
 }
 
 getFiles $sourcedir
