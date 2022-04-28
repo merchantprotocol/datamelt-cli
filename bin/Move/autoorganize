@@ -28,14 +28,14 @@ log ""
 
 ## Do not modify these variables
 declare -a globbers=( "*.txt" "**/*.txt" "**/**/*.txt" "**/**/**/*.txt" "**/**/**/**/*.txt" )
-foldercount=1000
+foldercount=10403
 
 #
 # get the next filename and resets the line counter
 #
 nextFilename( ) {
   nextFile=false
-  for num in {1000..1000000}
+  for num in {10403..1000000}
   do
     log "$num"
 
